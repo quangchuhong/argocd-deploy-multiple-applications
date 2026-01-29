@@ -58,7 +58,9 @@ Tài liệu này mô tả kiến trúc GitOps trên **Amazon EKS** với **Argo 
                 | Amazon ECR (Images)    |
                 +------------------------+
 ```
+---
 ## 2. Cấu trúc GitOps repo
+```text
 .
 ├── apps
 │   ├── platform-tools.yaml           # Root ArgoCD app cho tools
