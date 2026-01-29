@@ -173,7 +173,125 @@ spec:
 ```text
 kubectl apply -f projects/platform-project.yaml -n argocd
 kubectl apply -f projects/business-project.yaml -n argocd
+```
+---
+## 4. Root Application – App-of-Apps
+### 4.1. Root app cho Platform Tools
+```text
+# apps/platform-tools.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-tools
+  namespace: argocd
+spec:
+  project: platform
+
+  source:
+    repoURL: https://gitlab.com/your-group/gitops-platform.git
+    targetRevision: main
+    path: apps/tools
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+
+  revisionHistoryLimit: 10
+```
+Thư mục apps/tools/ chứa:
+```text
+apps/tools/
+├── jenkins-app.yaml
+├── sonarqube-app.yaml
+├── monitoring-app.yaml
+├── elk-app.yaml
+└── tooling-app.yaml
+```
+### 4.2. Root app cho Business Apps
+```text
+# apps/business-apps.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: business-apps
+  namespace: argocd
+spec:
+  project: business
+
+  source:
+    repoURL: https://gitlab.com/your-group/gitops-platform.git
+    targetRevision: main
+    path: apps/business
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+
+  revisionHistoryLimit: 10
+```
+Thư mục apps/business/ chứa:
+```text
+apps/business/
+├── shopping-cart-app.yaml
+└── payment-service-app.yaml
 
 ```
+### Apply 2 root-app:
+```text
+kubectl apply -f apps/platform-tools.yaml -n argocd
+kubectl apply -f apps/business-apps.yaml -n argocd
+```
+---
+## 5. Các Application con (ví dụ)
+### 5.1. Jenkins (app tools)
+```text
+# apps/tools/jenkins-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jenkins
+  namespace: argocd
+spec:
+  project: platform
+  source:
+    repoURL: https://gitlab.com/your-group/gitops-platform.git
+    targetRevision: main
+    path: helm/jenkins
+    helm:
+      releaseName: jenkins
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: jenkins
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+```
+
+
+
+
+
 ---
 
