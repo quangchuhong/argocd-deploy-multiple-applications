@@ -95,6 +95,7 @@ Tài liệu này mô tả kiến trúc GitOps trên **Amazon EKS** với **Argo 
         └── values.yaml
 
 ```
+---
 ## 3. AppProject – Phân tách quyền & phạm vi
 ### 3.1. AppProject cho platform
 ```text
