@@ -1,32 +1,77 @@
-# GitOps Platform trên EKS với Argo CD
+# Kiến trúc & Guide triển khai Platform Tools và Business Apps với Argo CD trên EKS
 
-## Thành phần
+Tài liệu này mô tả kiến trúc GitOps trên **Amazon EKS** với **Argo CD**, dùng để tự động triển khai:
 
-- **CI/CD & Tools**
+- **Platform Tools (project: `platform`)**
   - Jenkins – CI
   - SonarQube – Code Quality
-  - Trivy – Container Security Scanner
+  - Trivy – Security scanner (operator/cronjobs)
   - Prometheus + Grafana – Monitoring
-  - **ELK Stack** – Logging (ElasticSearch, Kibana, FluentBit/Fluentd)
-- **Applications**
-  - `shopping-cart` – Ứng dụng Java 17 Maven (ví dụ)
-
-Tất cả được quản lý bằng **Argo CD Application** theo mô hình GitOps.
+  - ELK – Logging (Elasticsearch + Kibana + FluentBit)
+- **Business Applications (project: `business`)**
+  - Ví dụ: `shopping-cart` (Java 17 Maven), `payment-service` (Python), ...
 
 ---
 
-## 1. Cấu trúc GitOps repo (mở rộng với ELK + app Java)
+## 1. Kiến trúc tổng quan
 
 ```text
+                   +--------------------------+
+                   |        GitLab            |
+                   |  GitOps Repos & AppCode  |
+                   +------------+-------------+
+                                |
+                                | (git clone / fetch)
+                                v
++----------------------------------------------------------+
+|                    Amazon EKS Cluster                    |
+|                                                          |
+|  +------------ Namespace: argocd ---------------------+  |
+|  |   +---------------------+     +------------------+ |  |
+|  |   | argocd-server       |<--->| argocd-redis     | |  |
+|  |   | (UI/API)            |     | (cache)          | |  |
+|  |   +----------+----------+     +--------+---------+ |  |
+|  |              |                         ^           |  |
+|  |              v                         |           |  |
+|  |   +----------------------+   +---------+--------+  |  |
+|  |   | argocd-app-controller|<->| argocd-repo-server| |  |
+|  |   | (reconcile Git <->   |   | (Git, Helm,       | |  |
+|  |   |  cluster)            |   |  Kustomize render)| |  |
+|  |   +----------------------+   +------------------+ |  |
+|  +--------------------------------------------------+  |
+|                                                          |
+|  +---------- Platform Namespaces (project: platform) ----+
+|  |  - jenkins        (Jenkins CI)                       |
+|  |  - sonarqube      (code quality)                     |
+|  |  - monitoring     (Prometheus + Grafana)             |
+|  |  - elk            (Elasticsearch + Kibana + Fluent)  |
+|  |  - tooling        (Trivy operator / jobs)            |
+|  +------------------------------------------------------+
+|  +---------- Business Namespaces (project: business) ----+
+|  |  - shopping-cart   (Java 17 app)                      |
+|  |  - payment-service (Python app)                       |
+|  |  - ...                                                |
+|  +------------------------------------------------------+
++----------------------------------------------------------+
+
+                +------------------------+
+                | Amazon ECR (Images)    |
+                +------------------------+
+```
+## 2. Cấu trúc GitOps repo
 .
 ├── apps
-│   ├── root-app.yaml                 # App-of-apps (platform-tools)
-│   ├── jenkins-app.yaml
-│   ├── sonarqube-app.yaml
-│   ├── monitoring-app.yaml           # prometheus + grafana
-│   ├── tooling-app.yaml              # trivy operator, cronjobs, etc.
-│   ├── elk-app.yaml                  # ELK stack
-│   └── shopping-cart-app.yaml        # ứng dụng Java 17 Maven
+│   ├── platform-tools.yaml           # Root ArgoCD app cho tools
+│   ├── business-apps.yaml            # Root ArgoCD app cho business apps
+│   ├── tools
+│   │   ├── jenkins-app.yaml
+│   │   ├── sonarqube-app.yaml
+│   │   ├── monitoring-app.yaml       # kube-prometheus-stack
+│   │   ├── elk-app.yaml              # Elasticsearch + Kibana + FluentBit
+│   │   └── tooling-app.yaml          # Trivy operator / jobs
+│   └── business
+│       ├── shopping-cart-app.yaml    # Java 17 app
+│       └── payment-service-app.yaml  # Python app (ví dụ)
 └── helm
     ├── jenkins
     │   ├── Chart.yaml
@@ -34,15 +79,19 @@ Tất cả được quản lý bằng **Argo CD Application** theo mô hình Git
     ├── sonarqube
     │   ├── Chart.yaml
     │   └── values.yaml
-    ├── monitoring                    # kube-prometheus-stack
+    ├── monitoring                 # kube-prometheus-stack
     │   ├── Chart.yaml
     │   └── values.yaml
-    ├── tooling                       # trivy operator / jobs
+    ├── elk                        # elasticsearch + kibana + fluentbit
     │   ├── Chart.yaml
     │   └── values.yaml
-    ├── elk                           # elasticsearch + kibana + fluentbit
+    ├── tooling                    # trivy operator / jobs
     │   ├── Chart.yaml
     │   └── values.yaml
-    └── shopping-cart                 # ứng dụng Java 17
+    └── shopping-cart              # ứng dụng Java 17
         ├── Chart.yaml
         └── values.yaml
+
+```
+
+
