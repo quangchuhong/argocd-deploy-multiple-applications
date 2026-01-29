@@ -136,3 +136,44 @@ spec:
         - p, proj:platform:platform-admin, applications, *, platform/*, allow
       groups: []
 ```
+---
+### 3.2. AppProject cho business
+```text
+# projects/business-project.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: business
+  namespace: argocd
+spec:
+  description: Business applications (Java, Python, ...)
+
+  sourceRepos:
+    - https://gitlab.com/your-group/gitops-platform.git
+
+  destinations:
+    - namespace: shopping-cart
+      server: https://kubernetes.default.svc
+    - namespace: payment-service
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  roles:
+    - name: business-admin
+      description: Full access to business apps
+      policies:
+        - p, proj:business:business-admin, applications, *, business/*, allow
+      groups: []
+
+```
+### Apply 2 AppProject:
+```text
+kubectl apply -f projects/platform-project.yaml -n argocd
+kubectl apply -f projects/business-project.yaml -n argocd
+
+```
+---
+
