@@ -288,6 +288,53 @@ spec:
       - CreateNamespace=true
       - ApplyOutOfSyncOnly=true
 ```
+---
+### 5.2. Ứng dụng Java 17 – shopping-cart
+```text
+# apps/business/shopping-cart-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shopping-cart
+  namespace: argocd
+spec:
+  project: business
+  source:
+    repoURL: https://gitlab.com/your-group/gitops-platform.git
+    targetRevision: main
+    path: helm/shopping-cart
+    helm:
+      releaseName: shopping-cart
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: shopping-cart
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+```
+---
+## 6. Luồng CI/CD + GitOps
+### - 1. Developer push code lên GitLab (repo ứng dụng).
+### - 2. Jenkins:
+Build Maven (Java 17),
+SonarQube scan,
+Docker build & Trivy scan,
+Push image lên ECR,
+Update helm/shopping-cart/values.yaml (image.tag) trong repo GitOps và commit.
+### - 3. Argo CD:
+Thấy GitOps repo có commit mới,
+Application shopping-cart OutOfSync,
+Auto-sync → cập nhật Deployment trong namespace shopping-cart trên EKS.
+### - 4. ELK thu thập logs của tất cả pods,
+### - 5. Prometheus + Grafana thu metrics,
+### - 6. Dev/Platform quan sát hệ thống qua Grafana, Kibana, ArgoCD UI.
+
 
 
 
