@@ -95,5 +95,43 @@ Tài liệu này mô tả kiến trúc GitOps trên **Amazon EKS** với **Argo 
         └── values.yaml
 
 ```
+## 3. AppProject – Phân tách quyền & phạm vi
+### 3.1. AppProject cho platform
+```text
+# projects/platform-project.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Platform tools (Jenkins, SonarQube, Prometheus, Grafana, ELK, Trivy, ...)
 
+  sourceRepos:
+    - https://gitlab.com/your-group/gitops-platform.git
 
+  destinations:
+    - namespace: jenkins
+      server: https://kubernetes.default.svc
+    - namespace: sonarqube
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: elk
+      server: https://kubernetes.default.svc
+    - namespace: tooling
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  roles:
+    - name: platform-admin
+      description: Full access to platform apps
+      policies:
+        - p, proj:platform:platform-admin, applications, *, platform/*, allow
+      groups: []
+```
