@@ -320,20 +320,20 @@ spec:
 ```
 ---
 ## 6. Luồng CI/CD + GitOps
- - **1. Developer push code lên GitLab (repo ứng dụng).**
- - **2. Jenkins:**
-  - Build Maven (Java 17),
-  - SonarQube scan,
-  - Docker build & Trivy scan,
-  - Push image lên ECR,
-  - Update helm/shopping-cart/values.yaml (image.tag) trong repo GitOps và commit.
-- **3. Argo CD:**
+ - ***1. Developer push code lên GitLab (repo ứng dụng).***
+ - ***2. Jenkins:***
+    - Build Maven (Java 17),
+    - SonarQube scan,
+    - Docker build & Trivy scan,
+    - Push image lên ECR,
+    - Update helm/shopping-cart/values.yaml (image.tag) trong repo GitOps và commit.
+- ***3. Argo CD:***
   - Thấy GitOps repo có commit mới,
   - Application shopping-cart OutOfSync,
   - Auto-sync → cập nhật Deployment trong namespace shopping-cart trên EKS.
-- **4. ELK thu thập logs của tất cả pods**
-- **5. Prometheus + Grafana thu metrics**
-- **6. Dev/Platform quan sát hệ thống qua Grafana, Kibana, ArgoCD UI.**
+- ***4. ELK thu thập logs của tất cả pods***
+- ***5. Prometheus + Grafana thu metrics***
+- ***6. Dev/Platform quan sát hệ thống qua Grafana, Kibana, ArgoCD UI.***
 
 
 
